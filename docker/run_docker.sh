@@ -379,7 +379,7 @@ if is_arm64; then
     echo "Detected ARM64 architecture (Jetson Orin), using device access instead of nvidia runtime..."
     GPU_RUNTIME_ARGS="--device /dev/nvidia0 --device /dev/nvidiactl --device /dev/nvidia-modeset --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools"
 else
-    GPU_RUNTIME_ARGS="--gpus all --runtime=nvidia"
+    GPU_RUNTIME_ARGS="--gpus all"
 fi
 
 # Common Docker run parameters
