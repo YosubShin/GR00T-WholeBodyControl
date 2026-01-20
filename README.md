@@ -138,3 +138,70 @@ Operations in the `data exporter` window (`control_data_teleop` pane, right top)
 Operations on Pico controllers:
 - `A`: Start/Stop recording
 - `B`: Discard trajectory
+
+---
+
+## Running G1 Without Dexterous Hands (Stub Configuration)
+
+If your G1 robot has rubber stubs instead of Dex3/Inspire hands, use these configurations:
+
+### Network Setup (Real Robot)
+
+Configure the ethernet interface connected to the robot:
+```bash
+sudo ip link set <interface> up
+sudo ip addr flush dev <interface>
+sudo ip addr add 192.168.123.222/24 dev <interface>
+```
+
+### Control Loop Commands
+
+**Simulation mode (no hands):**
+```bash
+python gr00t_wbc/control/main/teleop/run_g1_control_loop.py --interface sim --no-with-hands
+```
+
+**Real robot (no hands):**
+```bash
+python gr00t_wbc/control/main/teleop/run_g1_control_loop.py --interface real --no-with-hands
+```
+
+### Motion Playback
+
+To play recorded motions on the upper body while the RL policy controls legs:
+
+```bash
+python gr00t_wbc/control/main/teleop/publish_upper_body_from_results.py \
+  --results resources/poses/results.pkl \
+  --loop \
+  --teleop-frequency 30 \
+  --hand-mode zero \
+  --speed 0.5 \
+  --initial-pose-seconds 5.0 \
+  --upper-body-only
+```
+
+Key flags:
+- `--no-with-hands`: Disables hand SDK communication (prevents DDS errors)
+- `--upper-body-only`: Only publishes arm poses, lets RL policy control legs
+- `--speed 0.5`: Slows motion playback to prevent safety violations
+- `--initial-pose-seconds 5.0`: Allows robot to slowly reach initial pose
+
+### Troubleshooting
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `ddsi_udp_conn_write to udp/127.0.0.1:7410 failed` | Hand SDK trying to connect to non-existent hands | Use `--no-with-hands` flag |
+| `real: does not match an available interface` | No network interface has `192.168.123.x` IP | Configure ethernet interface or use `--interface sim` |
+| `Joint safety bounds exceeded` | Motion causing joints to move too fast | Reduce `--speed` and increase `--initial-pose-seconds` |
+
+---
+
+## Hand Configurations
+
+| Hand Type | DOF (per hand) | Total Joints | Flag |
+|-----------|---------------|--------------|------|
+| Rubber Stubs | 0 | 29 (body only) | `--no-with-hands` |
+| Unitree Dex3 | 7 | 43 | `--with-hands` (default) |
+| Inspire RH56 | 6 | 41 | *Requires custom integration* |
+
