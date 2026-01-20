@@ -176,6 +176,10 @@ def main():
     ap.add_argument("--hand-mode", choices=["zero", "hold"], default="zero",
                     help="What to do with hand joints (not present in results). "
                          "'zero' sets them to 0.0, 'hold' keeps last commanded value.")
+    ap.add_argument("--upper-body-only", action="store_true",
+                    help="Only publish upper body poses, do NOT publish navigate_cmd or "
+                         "base_height_command. This allows the control loop's RL policy "
+                         "to handle leg locomotion independently.")
     args = ap.parse_args()
 
     results = load_results(args.results)
@@ -260,14 +264,18 @@ def main():
                 "timestamp": t_now,
                 "target_time": target_time,
                 "target_upper_body_pose": q_upper,                         # (28,)
-                "navigate_cmd": np.asarray(DEFAULT_NAV_CMD, dtype=float),  # (3,)
-                "base_height_command": float(DEFAULT_BASE_HEIGHT),         # scalar
             }
+
+            # Only include lower body commands if not in upper-body-only mode
+            if not args.upper_body_only:
+                msg["navigate_cmd"] = np.asarray(DEFAULT_NAV_CMD, dtype=float)  # (3,)
+                msg["base_height_command"] = float(DEFAULT_BASE_HEIGHT)         # scalar
 
             pub.publish(msg)
 
             if iteration == 0:
-                print(f"[info] sent initial waypoint (upper=28, nav=3, base=1 => total=32). "
+                mode_str = "upper-body-only" if args.upper_body_only else "full (upper=28, nav=3, base=1)"
+                print(f"[info] sent initial waypoint ({mode_str}). "
                       f"settle {args.initial_pose_seconds:.2f}s")
                 time.sleep(float(args.initial_pose_seconds))
 
