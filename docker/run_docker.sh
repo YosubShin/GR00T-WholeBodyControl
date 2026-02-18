@@ -121,6 +121,19 @@ fi
 # Get input group ID for device access
 INPUT_GID=$(getent group input | cut -d: -f3)
 
+# Detect Joy-Con input devices (including IMU) and add explicit device passthrough
+# Note: --device=/dev and --privileged already expose devices, but these explicit
+# flags help if you later tighten device access.
+JOYCON_DEVICE_ARGS=""
+for name_file in /sys/class/input/event*/device/name; do
+    [ -f "$name_file" ] || continue
+    device_name=$(cat "$name_file")
+    if [[ "$device_name" == Joy-Con* ]]; then
+        event_node=$(basename "$(dirname "$name_file")")
+        JOYCON_DEVICE_ARGS="$JOYCON_DEVICE_ARGS --device /dev/input/${event_node}"
+    fi
+done
+
 # Get script directory for path calculations
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -391,6 +404,7 @@ DOCKER_RUN_ARGS="--hostname $HOSTNAME \
     --network=host \
     --privileged \
     --device=/dev \
+    $JOYCON_DEVICE_ARGS \
     $GPU_ENV_VARS \
     -p 5678:5678 \
     -e DISPLAY=$DISPLAY \
@@ -400,6 +414,7 @@ DOCKER_RUN_ARGS="--hostname $HOSTNAME \
     -e USERNAME=$USERNAME \
     -e GR00T_WBC_DIR="$DOCKER_HOME_DIR/Projects/$WORKTREE_NAME" \
     -v /dev/bus/usb:/dev/bus/usb \
+    -v /dev/input:/dev/input \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v $HOME/.ssh:$DOCKER_HOME_DIR/.ssh \
     -v $HOME/.gear:$DOCKER_HOME_DIR/.gear \

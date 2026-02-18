@@ -1,9 +1,12 @@
 from typing import Dict
+import threading
 
 import numpy as np
 from unitree_sdk2py.core.channel import ChannelPublisher
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__HandCmd_
+from unitree_sdk2py.idl.default import unitree_go_msg_dds__MotorCmd_
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import HandCmd_
+from unitree_sdk2py.idl.unitree_go.msg.dds_ import MotorCmds_
 from unitree_sdk2py.utils.crc import CRC
 
 
@@ -105,6 +108,96 @@ class BodyCommandSender:
         self.lowcmd_publisher_.Write(self.low_cmd)
 
 
+class HandCommandSender:
+    _cmd_lock = threading.Lock()
+    _shared_cmd = None
+
+    def __init__(self, is_left: bool = True, hand_type: str = "three_finger"):
+        self.is_left = is_left
+        self.hand_type = hand_type
+
+        if self.hand_type in ("three_finger", "dex3"):
+            topic = "rt/dex3/left/cmd" if self.is_left else "rt/dex3/right/cmd"
+            self.cmd_pub = ChannelPublisher(topic, HandCmd_)
+            self.cmd_pub.Init()
+            self.cmd = unitree_hg_msg_dds__HandCmd_()
+            self.hand_dof = 7
+            self.kp = [1.0] * self.hand_dof
+            self.kd = [0.2] * self.hand_dof
+            self.kp[0] = 2.0
+            self.kd[0] = 0.5
+        elif self.hand_type == "inspire":
+            self.hand_dof = 6
+            self.hand_start = 6 if self.is_left else 0
+            self.hand_end = self.hand_start + self.hand_dof
+            self.cmd_pub = ChannelPublisher("rt/inspire/cmd", MotorCmds_)
+            self.cmd_pub.Init()
+            self.cmd = self._get_shared_cmd()
+        else:
+            raise ValueError(f"Unsupported hand_type: {self.hand_type}")
+
+    def send_command(self, cmd: np.ndarray):
+        cmd = np.asarray(cmd, dtype=np.float32).reshape(-1)
+        if cmd.shape[0] != self.hand_dof:
+            raise ValueError(f"Expected {self.hand_dof} hand targets, got {cmd.shape[0]}")
+
+        if self.hand_type in ("three_finger", "dex3"):
+            for i in range(self.hand_dof):
+                mode_val = make_hand_mode(i)
+                self.cmd.motor_cmd[i].mode = mode_val
+                self.cmd.motor_cmd[i].q = float(cmd[i])
+                self.cmd.motor_cmd[i].dq = 0.0
+                self.cmd.motor_cmd[i].tau = 0.0
+                self.cmd.motor_cmd[i].kp = self.kp[i]
+                self.cmd.motor_cmd[i].kd = self.kd[i]
+            self.cmd_pub.Write(self.cmd)
+            return
+
+        clipped = np.clip(cmd, 0.0, 1000.0)
+        with self._cmd_lock:
+            motor_cmd = self._get_motor_cmd(self.cmd)
+            for i in range(self.hand_dof):
+                inspire_index = self.hand_start + i
+                motor_cmd[inspire_index].mode = 1
+                motor_cmd[inspire_index].q = float(clipped[i])
+                motor_cmd[inspire_index].dq = 1000.0
+                motor_cmd[inspire_index].tau = 0.0
+                motor_cmd[inspire_index].kp = 1000.0
+                motor_cmd[inspire_index].kd = 200.0
+
+            self.cmd_pub.Write(self.cmd)
+
+    @classmethod
+    def _get_shared_cmd(cls):
+        with cls._cmd_lock:
+            if cls._shared_cmd is None:
+                cls._shared_cmd = cls._build_inspire_cmd_msg(total_dof=12)
+            return cls._shared_cmd
+
+    @staticmethod
+    def _build_inspire_cmd_msg(total_dof: int):
+        try:
+            from unitree_sdk2py.idl.default import unitree_go_msg_dds__MotorCmds_
+
+            msg = unitree_go_msg_dds__MotorCmds_()
+            motor_cmd = HandCommandSender._get_motor_cmd(msg)
+            while len(motor_cmd) < total_dof:
+                motor_cmd.append(unitree_go_msg_dds__MotorCmd_())
+            return msg
+        except (ImportError, AttributeError):
+            from unitree_sdk2py.idl.unitree_go.msg.dds_ import MotorCmds_
+
+            return MotorCmds_(cmds=[unitree_go_msg_dds__MotorCmd_() for _ in range(total_dof)])
+
+    @staticmethod
+    def _get_motor_cmd(cmd_msg):
+        if hasattr(cmd_msg, "motor_cmd"):
+            return cmd_msg.motor_cmd
+        if hasattr(cmd_msg, "cmds"):
+            return cmd_msg.cmds
+        raise AttributeError("Unsupported Inspire command message: expected `motor_cmd` or `cmds`")
+
+
 def make_hand_mode(motor_index: int) -> int:
     status = 0x01
     timeout = 0x01
@@ -112,35 +205,3 @@ def make_hand_mode(motor_index: int) -> int:
     mode |= status << 4  # bits [4..6]
     mode |= timeout << 7  # bit 7
     return mode
-
-
-class HandCommandSender:
-    def __init__(self, is_left: bool = True):
-        self.is_left = is_left
-        if self.is_left:
-            self.cmd_pub = ChannelPublisher("rt/dex3/left/cmd", HandCmd_)
-        else:
-            self.cmd_pub = ChannelPublisher("rt/dex3/right/cmd", HandCmd_)
-
-        self.cmd_pub.Init()
-        self.cmd = unitree_hg_msg_dds__HandCmd_()
-
-        self.hand_dof = 7
-
-        self.kp = [1.0] * self.hand_dof
-        self.kd = [0.2] * self.hand_dof
-        self.kp[0] = 2.0
-        self.kd[0] = 0.5
-
-    def send_command(self, cmd: np.ndarray):
-        for i in range(self.hand_dof):
-            # Build the bitfield mode (see your C++ example)
-            mode_val = make_hand_mode(i)
-            self.cmd.motor_cmd[i].mode = mode_val
-            self.cmd.motor_cmd[i].q = cmd[i]
-            self.cmd.motor_cmd[i].dq = 0.0
-            self.cmd.motor_cmd[i].tau = 0.0
-            self.cmd.motor_cmd[i].kp = self.kp[i]
-            self.cmd.motor_cmd[i].kd = self.kd[i]
-
-        self.cmd_pub.Write(self.cmd)

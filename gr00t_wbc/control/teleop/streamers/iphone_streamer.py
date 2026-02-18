@@ -46,13 +46,10 @@ def get_transformation(vive_raw_data):
 
 class IphoneStreamer(BaseStreamer):
     def __init__(self):
-        self.left_device = IPhoneDevice(port=5557)
         self.right_device = IPhoneDevice(port=5558)
-        self.left_prev_button_states = {"Reset": False, "Close": False}
         self.right_prev_button_states = {"Reset": False, "Close": False}
 
     def start_streaming(self):
-        self.left_device.start()
         self.right_device.start()
 
     def __del__(self):
@@ -67,40 +64,21 @@ class IphoneStreamer(BaseStreamer):
 
         try:
             # Request combined data from the server and wait until we get data
-            left_combined_data = None
             right_combined_data = None
-            while not left_combined_data:
-                left_combined_data = self.left_device.get_cmd()
-                if not left_combined_data:
-                    print("Waiting for left iPhone data...")
             while not right_combined_data:
                 right_combined_data = self.right_device.get_cmd()
                 if not right_combined_data:
                     print("Waiting for right iPhone data...")
 
             # IK data - wrist poses and finger positions (ik_keys)
-            ik_data["left_wrist"] = np.array(left_combined_data.get("transformMatrix"))
+            ik_data["left_wrist"] = np.eye(4)
             ik_data["right_wrist"] = np.array(right_combined_data.get("transformMatrix"))
 
-            # left button states
-            current_left_reset = left_combined_data.get("buttonStates").get("Reset")
-            current_left_close = left_combined_data.get("buttonStates").get("Close")
-
-            # Trigger logic: only True when button transitions from False to True
-            left_reset = current_left_reset and not self.left_prev_button_states["Reset"]
-
-            # Store current button states for next iteration
-            self.left_prev_button_states["Reset"] = current_left_reset
-            self.left_prev_button_states["Close"] = current_left_close
-
             # left fingers - IK data (ik_keys)
-            fingertips = np.zeros([25, 4, 4])
-            positions = fingertips[:, :3, 3]
-            if current_left_close:
-                positions[4, 0] = 0  # closed
-            else:
-                positions[4, 0] = 1  # open
-            ik_data["left_fingers"] = {"position": fingertips}
+            left_fingertips = np.zeros([25, 4, 4])
+            left_positions = left_fingertips[:, :3, 3]
+            left_positions[4, 0] = 1  # open
+            ik_data["left_fingers"] = {"position": left_fingertips}
 
             # right button states
             current_right_reset = right_combined_data.get("buttonStates").get("Reset")
@@ -114,19 +92,19 @@ class IphoneStreamer(BaseStreamer):
             self.right_prev_button_states["Close"] = current_right_close
 
             # right fingers - IK data (ik_keys)
-            fingertips = np.zeros([25, 4, 4])
-            positions = fingertips[:, :3, 3]
+            right_fingertips = np.zeros([25, 4, 4])
+            positions = right_fingertips[:, :3, 3]
             if current_right_close:
                 positions[4, 0] = 0  # closed
             else:
                 positions[4, 0] = 1  # open
-            ik_data["right_fingers"] = {"position": fingertips}
+            ik_data["right_fingers"] = {"position": right_fingertips}
 
             # Teleop commands (teleop_keys) - used by TeleopPolicy for activation
-            teleop_data["toggle_activation"] = left_reset
+            teleop_data["toggle_activation"] = right_reset
 
             # Control commands (control_keys) - sent to robot
-            control_data["toggle_stand_command"] = right_reset
+            control_data["toggle_stand_command"] = False
 
         except Exception as e:
             print(f"Error while requesting iPhone data: {e}")
@@ -137,7 +115,6 @@ class IphoneStreamer(BaseStreamer):
         )
 
     def stop_streaming(self):
-        self.left_device.stop()
         self.right_device.stop()
 
 

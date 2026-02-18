@@ -6,6 +6,7 @@ from unitree_sdk2py.comm.motion_switcher.motion_switcher_client import (
 )
 from unitree_sdk2py.core.channel import ChannelSubscriber
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import LowState_ as LowState_go
+from unitree_sdk2py.idl.unitree_go.msg.dds_ import MotorStates_
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import (
     HandState_,
     IMUState_,
@@ -108,17 +109,25 @@ class BodyStateProcessor:
 
 
 class HandStateProcessor:
-    def __init__(self, is_left: bool = True):
+    def __init__(self, is_left: bool = True, hand_type: str = "three_finger"):
         self.is_left = is_left
-        if self.is_left:
-            self.state_sub = ChannelSubscriber("rt/dex3/left/state", HandState_)
+        self.hand_type = hand_type
+        self.state = None
+
+        if self.hand_type in ("three_finger", "dex3"):
+            topic = "rt/dex3/left/state" if self.is_left else "rt/dex3/right/state"
+            self.state_sub = ChannelSubscriber(topic, HandState_)
+            self.num_dof = 7
+        elif self.hand_type == "inspire":
+            self.state_sub = ChannelSubscriber("rt/inspire/state", MotorStates_)
+            self.num_dof = 6  # per hand
+            self.hand_start = 6 if self.is_left else 0
+            self.hand_end = self.hand_start + self.num_dof
         else:
-            self.state_sub = ChannelSubscriber("rt/dex3/right/state", HandState_)
+            raise ValueError(f"Unsupported hand_type: {self.hand_type}")
 
         self.state_sub.Init(None, 0)
         self.state_sub.Init(None, 0)
-        self.state = None
-        self.num_dof = 7  # for single hand
 
     def _prepare_low_state(self) -> np.ndarray:
         self.state = self.state_sub.Read()
@@ -127,13 +136,37 @@ class HandStateProcessor:
             print("No state received")
             return
 
+        if self.hand_type in ("three_finger", "dex3"):
+            state_data = (
+                np.concatenate(
+                    [
+                        [self.state.motor_state[i].q for i in range(self.num_dof)],
+                        [self.state.motor_state[i].dq for i in range(self.num_dof)],
+                        [self.state.motor_state[i].tau_est for i in range(self.num_dof)],
+                        [self.state.motor_state[i].ddq for i in range(self.num_dof)],
+                    ],
+                    axis=0,
+                )
+                .astype(np.float64)
+                .reshape(1, -1)
+            )
+            return state_data
+
+        motor_states = self._get_motor_states(self.state)
+        if len(motor_states) < self.hand_end:
+            print(
+                f"Inspire state has insufficient motor count: {len(motor_states)} < {self.hand_end}"
+            )
+            return
+
+        hand_states = motor_states[self.hand_start : self.hand_end]
         state_data = (
             np.concatenate(
                 [
-                    [self.state.motor_state[i].q for i in range(self.num_dof)],
-                    [self.state.motor_state[i].dq for i in range(self.num_dof)],
-                    [self.state.motor_state[i].tau_est for i in range(self.num_dof)],
-                    [self.state.motor_state[i].ddq for i in range(self.num_dof)],
+                    [s.q for s in hand_states],
+                    [s.dq for s in hand_states],
+                    [s.tau_est for s in hand_states],
+                    [s.ddq for s in hand_states],
                 ],
                 axis=0,
             )
@@ -141,3 +174,11 @@ class HandStateProcessor:
             .reshape(1, -1)
         )
         return state_data
+
+    @staticmethod
+    def _get_motor_states(state):
+        if hasattr(state, "motor_state"):
+            return state.motor_state
+        if hasattr(state, "states"):
+            return state.states
+        raise AttributeError("Unsupported Inspire state message: expected `motor_state` or `states`")
