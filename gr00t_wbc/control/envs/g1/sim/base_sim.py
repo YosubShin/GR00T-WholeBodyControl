@@ -4,6 +4,7 @@ from pathlib import Path
 import threading
 from threading import Lock, Thread
 from typing import Dict
+import traceback
 
 import mujoco
 import mujoco.viewer
@@ -649,8 +650,10 @@ class BaseSimulator:
         self.env_name = env_name
 
         # Initialize ROS 2 node
+        self._owns_ros_context = False
         if not rclpy.ok():
             rclpy.init()
+            self._owns_ros_context = True
             self.node = rclpy.create_node("sim_mujoco")
             self.thread = threading.Thread(target=rclpy.spin, args=(self.node,), daemon=True)
             self.thread.start()
@@ -754,7 +757,9 @@ class BaseSimulator:
         except rclpy.exceptions.ROSInterruptException:
             # This is expected when ROS shuts down - exit cleanly
             pass
-        except Exception:
+        except Exception as e:
+            print(f"[BaseSimulator] Unhandled exception in sim loop: {e}")
+            traceback.print_exc()
             self.close()
 
     def __del__(self):
@@ -776,8 +781,8 @@ class BaseSimulator:
             if hasattr(self.sim_env, "viewer") and self.sim_env.viewer is not None:
                 self.sim_env.viewer.close()
 
-            # Shutdown ROS
-            if rclpy.ok():
+            # Shutdown ROS only if this simulator initialized it.
+            if self._owns_ros_context and rclpy.ok():
                 rclpy.shutdown()
         except Exception as e:
             print(f"Warning during close: {e}")
