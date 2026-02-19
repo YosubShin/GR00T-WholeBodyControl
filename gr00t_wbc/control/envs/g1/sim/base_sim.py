@@ -207,31 +207,19 @@ class DefaultEnv:
         right_hand_torques = np.zeros(self.num_hand_dof)
         if self.unitree_bridge is not None and self.unitree_bridge.low_cmd:
             for i in range(self.unitree_bridge.num_hand_motor):
+                left_cmd = self.unitree_bridge.get_hand_motor_cmd("left", i)
+                right_cmd = self.unitree_bridge.get_hand_motor_cmd("right", i)
                 left_hand_torques[i] = (
-                    self.unitree_bridge.left_hand_cmd.motor_cmd[i].tau
-                    + self.unitree_bridge.left_hand_cmd.motor_cmd[i].kp
-                    * (
-                        self.unitree_bridge.left_hand_cmd.motor_cmd[i].q
-                        - self.mj_data.qpos[self.left_hand_index[i] + 7 - 1]
-                    )
-                    + self.unitree_bridge.left_hand_cmd.motor_cmd[i].kd
-                    * (
-                        self.unitree_bridge.left_hand_cmd.motor_cmd[i].dq
-                        - self.mj_data.qvel[self.left_hand_index[i] + 6 - 1]
-                    )
+                    left_cmd.tau
+                    + left_cmd.kp * (left_cmd.q - self.mj_data.qpos[self.left_hand_index[i] + 7 - 1])
+                    + left_cmd.kd * (left_cmd.dq - self.mj_data.qvel[self.left_hand_index[i] + 6 - 1])
                 )
                 right_hand_torques[i] = (
-                    self.unitree_bridge.right_hand_cmd.motor_cmd[i].tau
-                    + self.unitree_bridge.right_hand_cmd.motor_cmd[i].kp
-                    * (
-                        self.unitree_bridge.right_hand_cmd.motor_cmd[i].q
-                        - self.mj_data.qpos[self.right_hand_index[i] + 7 - 1]
-                    )
-                    + self.unitree_bridge.right_hand_cmd.motor_cmd[i].kd
-                    * (
-                        self.unitree_bridge.right_hand_cmd.motor_cmd[i].dq
-                        - self.mj_data.qvel[self.right_hand_index[i] + 6 - 1]
-                    )
+                    right_cmd.tau
+                    + right_cmd.kp
+                    * (right_cmd.q - self.mj_data.qpos[self.right_hand_index[i] + 7 - 1])
+                    + right_cmd.kd
+                    * (right_cmd.dq - self.mj_data.qvel[self.right_hand_index[i] + 6 - 1])
                 )
         return np.concatenate((left_hand_torques, right_hand_torques))
 
@@ -248,8 +236,8 @@ class DefaultEnv:
         hand_qpos = np.zeros(self.num_hand_dof * 2)
         if self.unitree_bridge is not None and self.unitree_bridge.low_cmd:
             for i in range(self.unitree_bridge.num_hand_motor):
-                hand_qpos[i] = self.unitree_bridge.left_hand_cmd.motor_cmd[i].q
-                hand_qpos[i + self.num_hand_dof] = self.unitree_bridge.right_hand_cmd.motor_cmd[i].q
+                hand_qpos[i] = self.unitree_bridge.get_hand_motor_cmd("left", i).q
+                hand_qpos[i + self.num_hand_dof] = self.unitree_bridge.get_hand_motor_cmd("right", i).q
         return hand_qpos
 
     def prepare_obs(self) -> Dict[str, any]:

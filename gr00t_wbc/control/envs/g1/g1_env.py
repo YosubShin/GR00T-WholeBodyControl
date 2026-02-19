@@ -70,10 +70,9 @@ class G1Env(HumanoidEnv):
 
         if self.use_sim:
             if self.with_hands and self.hand_type == "inspire":
-                raise NotImplementedError(
-                    "Simulation with hand_type='inspire' is not wired yet in this repository. "
-                    "Current MuJoCo scenes/robot-model mappings are Dex3-oriented (43-DoF). "
-                    "Use --interface real for Inspire hardware, or use Dex3 in simulation."
+                print(
+                    "[WARN] hand_type='inspire' in sim uses a 6-command mapping on the existing "
+                    "G1 hand scene. Unused hand joints remain at defaults."
                 )
             # Create simulator using factory
 

@@ -61,6 +61,11 @@ def override_wbc_config(
         for key in key_to_value:
             wbc_config[key] = key_to_value[key]
 
+    # Inspire uses 6 commanded joints per hand.
+    # Keep NUM_HAND_JOINTS as-is for existing scene compatibility.
+    if config.hand_type == "inspire":
+        wbc_config["NUM_HAND_MOTORS"] = 6
+
     # g1 kp, kd, sim2real gap
     if config.env_type == "real":
         # update waist pitch damping, index 14
