@@ -267,10 +267,12 @@ class DefaultEnv:
                 left_dq_target = self.unitree_bridge.get_hand_target_dq("left", i)
                 right_dq_target = self.unitree_bridge.get_hand_target_dq("right", i)
                 if self.config.get("hand_type", "dex3") == "inspire":
-                    left_kp = min(float(left_cmd.kp), 80.0)
-                    left_kd = min(float(left_cmd.kd), 5.0)
-                    right_kp = min(float(right_cmd.kp), 80.0)
-                    right_kd = min(float(right_cmd.kd), 5.0)
+                    # Use moderate gains for Inspire in sim: strong enough to reopen,
+                    # but not so high that finger links chatter.
+                    left_kp = min(float(left_cmd.kp), 140.0)
+                    left_kd = min(float(left_cmd.kd), 8.0)
+                    right_kp = min(float(right_cmd.kp), 140.0)
+                    right_kd = min(float(right_cmd.kd), 8.0)
                 else:
                     left_kp = float(left_cmd.kp)
                     left_kd = float(left_cmd.kd)
