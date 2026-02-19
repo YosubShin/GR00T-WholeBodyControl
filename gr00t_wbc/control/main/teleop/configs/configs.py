@@ -105,7 +105,9 @@ def override_wbc_config(
             5.0,
             5.0,
         ]
-        inspire_hand_effort = [1.3, 0.5, 1.7, 1.7, 1.7, 1.7]
+        # Use actuator effort limits (not joint-angle maxima) for Inspire fingers.
+        # Lower per-joint limits (e.g. 0.5 on thumb pitch) can make close->open recovery stall.
+        inspire_hand_effort = [25.0, 25.0, 25.0, 25.0, 25.0, 25.0]
         wbc_config["motor_effort_limit_list"] = body_effort + inspire_hand_effort + inspire_hand_effort
         robot_scene = wbc_config.get("ROBOT_SCENE", "")
         if isinstance(robot_scene, str) and "scene_43dof.xml" in robot_scene:
