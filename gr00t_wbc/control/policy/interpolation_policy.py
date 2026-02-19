@@ -55,13 +55,20 @@ class InterpolationPolicy(Policy):
             The concatenated vectors (T, D) arrays.
         """
         concat_vecs = []
-        for key in self.concat_order:
+        for key, expected_dim in zip(self.concat_order, self.concat_dims):
             if key in values:
                 vec = np.array(values[key])
                 if vec.ndim == 1:
                     # If the vector is 1D, tile it to the length of the time dimension
                     vec = np.tile(vec, (length, 1))
                 assert vec.ndim == 2, f"The shape of {key} should be (T, D). Got {vec.shape}."
+                if vec.shape[1] != expected_dim:
+                    raise ValueError(
+                        f"Goal dimension mismatch for '{key}': got {vec.shape[1]}, "
+                        f"expected {expected_dim}. "
+                        "This often means teleop/control loops are using different hand configs "
+                        "(e.g. dex3 vs inspire)."
+                    )
                 concat_vecs.append(vec)
             else:
                 # If the vector is not in the values, use the last action
