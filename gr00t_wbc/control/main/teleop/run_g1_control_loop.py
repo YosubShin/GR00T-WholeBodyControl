@@ -91,6 +91,23 @@ def main(config: ControlLoopConfig):
     upper_body_policy_subscriber = ROSMsgSubscriber(CONTROL_GOAL_TOPIC)
 
     last_teleop_cmd = None
+    debug_inspire_startup = bool(config.hand_type == "inspire" and wbc_config.get("ENV_TYPE") == "sim")
+    debug_start_time = time.monotonic()
+    debug_print_every_steps = 5
+    debug_step = 0
+    if debug_inspire_startup:
+        debug_joint_names = [
+            "left_shoulder_pitch_joint",
+            "left_shoulder_roll_joint",
+            "left_shoulder_yaw_joint",
+            "left_elbow_joint",
+            "right_shoulder_pitch_joint",
+            "right_shoulder_roll_joint",
+            "right_shoulder_yaw_joint",
+            "right_elbow_joint",
+        ]
+        debug_joint_indices = [robot_model.dof_index(name) for name in debug_joint_names]
+        print("[DEBUG inspire] startup arm command/observation logging enabled for first 2.0s")
     try:
         while ros_manager.ok():
             t_start = time.monotonic()
@@ -127,6 +144,20 @@ def main(config: ControlLoopConfig):
                 # Measure policy action calculation time
                 with telemetry.timer("policy_action"):
                     wbc_action = wbc_policy.get_action(time=t_now)
+                    if debug_inspire_startup and (t_now - debug_start_time) < 2.0:
+                        if debug_step % debug_print_every_steps == 0:
+                            cmd_q = wbc_action["q"][debug_joint_indices]
+                            obs_q = obs["q"][debug_joint_indices]
+                            err_q = cmd_q - obs_q
+                            cmd_s = ", ".join(f"{v:+.3f}" for v in cmd_q)
+                            obs_s = ", ".join(f"{v:+.3f}" for v in obs_q)
+                            err_s = ", ".join(f"{v:+.3f}" for v in err_q)
+                            print(
+                                f"[DEBUG inspire t={t_now - debug_start_time:0.3f}s] "
+                                f"cmd=[{cmd_s}] obs=[{obs_s}] err=[{err_s}] "
+                                f"joints={debug_joint_names}"
+                            )
+                        debug_step += 1
 
                 # Measure action queue time
                 with telemetry.timer("queue_action"):

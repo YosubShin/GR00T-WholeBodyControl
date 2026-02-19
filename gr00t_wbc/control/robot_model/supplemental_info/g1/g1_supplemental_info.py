@@ -225,6 +225,13 @@ class G1SupplementalInfo(RobotSupplementalInfo):
             "right_hand_pinky_proximal_joint": [0.0, 1.7],
         }
 
+        # Inspire mount/orientation can shift IK solutions closer to neutral shoulder-roll.
+        # Use physical URDF limits (instead of the tighter mirrored bias) so both arms can
+        # recover symmetrically during startup and teleop handover.
+        if hand_type == "inspire":
+            joint_limits["left_shoulder_roll_joint"] = [-1.5882, 2.2515]
+            joint_limits["right_shoulder_roll_joint"] = [-2.2515, 1.5882]
+
         # Define joint groups
         joint_groups = {
             # Body groups
