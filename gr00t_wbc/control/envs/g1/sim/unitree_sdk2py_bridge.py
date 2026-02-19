@@ -56,11 +56,12 @@ class UnitreeSdk2Bridge:
         self.num_body_motor = config["NUM_MOTORS"]
         self.num_hand_motor = config.get("NUM_HAND_MOTORS", 0)
         self.hand_type = config.get("hand_type", "dex3")
+        self.num_hand_joints = int(config.get("NUM_HAND_JOINTS", self.num_hand_motor))
         # Maps logical hand command index -> scene hand joint index.
         # Legacy 7-joint hand scene order is [thumb0, thumb1, thumb2, middle0, middle1, index0, index1].
         # Inspire logical order is [thumb_yaw, thumb_pitch, index, middle, ring, pinky].
         if self.hand_type == "inspire" and self.num_hand_motor == 6:
-            if config.get("NUM_HAND_JOINTS", 0) == 6:
+            if self.num_hand_joints == 6:
                 # Dedicated Inspire scene: direct mapping to actuated proximal joints.
                 self.hand_joint_index_map = list(range(6))
             else:
@@ -68,6 +69,11 @@ class UnitreeSdk2Bridge:
                 self.hand_joint_index_map = [0, 1, 5, 3, 6, 4]
         else:
             self.hand_joint_index_map = list(range(self.num_hand_motor))
+        # Dedicated Inspire MJCF uses joint-angle space in sim while teleop/API hand commands are [0, 1000].
+        self._use_inspire_cmd_space_conversion = (
+            self.hand_type == "inspire" and self.num_hand_motor == 6 and self.num_hand_joints == 6
+        )
+        self._inspire_joint_max = np.array([1.3, 0.5, 1.7, 1.7, 1.7, 1.7], dtype=np.float32)
         self.use_sensor = config["USE_SENSOR"]
 
         self.have_imu_ = False
@@ -280,10 +286,20 @@ class UnitreeSdk2Bridge:
                 left_idx = self._inspire_left_start + i
                 right_idx = self._inspire_right_start + i
                 scene_idx = self.get_scene_hand_joint_index(i)
-                motor_states[left_idx].q = float(obs["left_hand_q"][scene_idx])
-                motor_states[left_idx].dq = float(obs["left_hand_dq"][scene_idx])
-                motor_states[right_idx].q = float(obs["right_hand_q"][scene_idx])
-                motor_states[right_idx].dq = float(obs["right_hand_dq"][scene_idx])
+                left_q = float(obs["left_hand_q"][scene_idx])
+                left_dq = float(obs["left_hand_dq"][scene_idx])
+                right_q = float(obs["right_hand_q"][scene_idx])
+                right_dq = float(obs["right_hand_dq"][scene_idx])
+                if self._use_inspire_cmd_space_conversion:
+                    left_q = self.scene_q_to_inspire_cmd(i, left_q)
+                    right_q = self.scene_q_to_inspire_cmd(i, right_q)
+                    left_dq = self.scene_dq_to_inspire_cmd(i, left_dq)
+                    right_dq = self.scene_dq_to_inspire_cmd(i, right_dq)
+
+                motor_states[left_idx].q = left_q
+                motor_states[left_idx].dq = left_dq
+                motor_states[right_idx].q = right_q
+                motor_states[right_idx].dq = right_dq
             self.inspire_state_puber.Write(self.inspire_state)
             return
 
@@ -349,6 +365,37 @@ class UnitreeSdk2Bridge:
 
     def get_scene_hand_joint_index(self, motor_idx: int) -> int:
         return self.hand_joint_index_map[motor_idx]
+
+    def inspire_cmd_to_scene_q(self, motor_idx: int, cmd_q: float) -> float:
+        if not self._use_inspire_cmd_space_conversion:
+            return float(cmd_q)
+        max_q = float(self._inspire_joint_max[motor_idx])
+        return float(np.clip(cmd_q, 0.0, 1000.0) * (max_q / 1000.0))
+
+    def scene_q_to_inspire_cmd(self, motor_idx: int, scene_q: float) -> float:
+        if not self._use_inspire_cmd_space_conversion:
+            return float(scene_q)
+        max_q = max(float(self._inspire_joint_max[motor_idx]), 1e-6)
+        return float(np.clip(scene_q * (1000.0 / max_q), 0.0, 1000.0))
+
+    def scene_dq_to_inspire_cmd(self, motor_idx: int, scene_dq: float) -> float:
+        if not self._use_inspire_cmd_space_conversion:
+            return float(scene_dq)
+        max_q = max(float(self._inspire_joint_max[motor_idx]), 1e-6)
+        return float(scene_dq * (1000.0 / max_q))
+
+    def get_hand_target_q(self, side: str, motor_idx: int) -> float:
+        cmd = self.get_hand_motor_cmd(side, motor_idx)
+        if self.hand_type == "inspire":
+            return self.inspire_cmd_to_scene_q(motor_idx, cmd.q)
+        return float(cmd.q)
+
+    def get_hand_target_dq(self, side: str, motor_idx: int) -> float:
+        cmd = self.get_hand_motor_cmd(side, motor_idx)
+        if self.hand_type == "inspire":
+            # Inspire command sender uses dq=1000 in command space; do not use this as a rad/s target in sim.
+            return 0.0
+        return float(cmd.dq)
 
     @staticmethod
     def _get_motor_cmd(cmd_msg):

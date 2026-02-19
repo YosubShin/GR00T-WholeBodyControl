@@ -262,19 +262,23 @@ class DefaultEnv:
                 scene_i = self.unitree_bridge.get_scene_hand_joint_index(i)
                 left_cmd = self.unitree_bridge.get_hand_motor_cmd("left", i)
                 right_cmd = self.unitree_bridge.get_hand_motor_cmd("right", i)
+                left_q_target = self.unitree_bridge.get_hand_target_q("left", i)
+                right_q_target = self.unitree_bridge.get_hand_target_q("right", i)
+                left_dq_target = self.unitree_bridge.get_hand_target_dq("left", i)
+                right_dq_target = self.unitree_bridge.get_hand_target_dq("right", i)
                 left_hand_torques[i] = (
                     left_cmd.tau
                     + left_cmd.kp
-                    * (left_cmd.q - self.mj_data.qpos[self.left_hand_index[scene_i] + 7 - 1])
+                    * (left_q_target - self.mj_data.qpos[self.left_hand_index[scene_i] + 7 - 1])
                     + left_cmd.kd
-                    * (left_cmd.dq - self.mj_data.qvel[self.left_hand_index[scene_i] + 6 - 1])
+                    * (left_dq_target - self.mj_data.qvel[self.left_hand_index[scene_i] + 6 - 1])
                 )
                 right_hand_torques[i] = (
                     right_cmd.tau
                     + right_cmd.kp
-                    * (right_cmd.q - self.mj_data.qpos[self.right_hand_index[scene_i] + 7 - 1])
+                    * (right_q_target - self.mj_data.qpos[self.right_hand_index[scene_i] + 7 - 1])
                     + right_cmd.kd
-                    * (right_cmd.dq - self.mj_data.qvel[self.right_hand_index[scene_i] + 6 - 1])
+                    * (right_dq_target - self.mj_data.qvel[self.right_hand_index[scene_i] + 6 - 1])
                 )
         return np.concatenate((left_hand_torques, right_hand_torques))
 

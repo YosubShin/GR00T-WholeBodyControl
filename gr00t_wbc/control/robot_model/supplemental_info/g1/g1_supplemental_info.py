@@ -347,6 +347,11 @@ class G1SupplementalInfo(RobotSupplementalInfo):
         else:  # ElbowPose.LOW
             default_joint_q = {
                 "shoulder_roll": {"left": 0.2, "right": -0.2},
+                # Keep wrists neutral by default. This avoids inward-folded hand posture
+                # when switching hand embodiments (e.g., Inspire mount geometry).
+                "wrist_roll": {"left": 0.0, "right": 0.0},
+                "wrist_pitch": {"left": 0.0, "right": 0.0},
+                "wrist_yaw": {"left": 0.0, "right": 0.0},
             }
 
         teleop_upper_body_motion_scale = 1.0
