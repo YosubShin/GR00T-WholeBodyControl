@@ -191,6 +191,27 @@ class DefaultEnv:
         self.left_hand_index = np.array(self.left_hand_index)
         self.right_hand_index = np.array(self.right_hand_index)
 
+        # Build robust joint->actuator mappings.
+        # Using (joint_id - 1) only works when every joint is actuated and ordered contiguously,
+        # which is not true for the Inspire hand model (contains passive intermediate joints).
+        joint_to_actuator = {
+            int(self.mj_model.actuator_trnid[a][0]): a for a in range(self.mj_model.nu)
+        }
+
+        def _to_actuator_indices(joint_indices: np.ndarray, group_name: str) -> np.ndarray:
+            missing = [int(j) for j in joint_indices if int(j) not in joint_to_actuator]
+            if missing:
+                missing_names = [self.mj_model.joint(j).name for j in missing]
+                raise RuntimeError(
+                    f"Missing actuators for {group_name} joints: {missing_names}. "
+                    "Check scene actuator definitions."
+                )
+            return np.array([joint_to_actuator[int(j)] for j in joint_indices], dtype=int)
+
+        self.body_actuator_index = _to_actuator_indices(self.body_joint_index, "body")
+        self.left_hand_actuator_index = _to_actuator_indices(self.left_hand_index, "left hand")
+        self.right_hand_actuator_index = _to_actuator_indices(self.right_hand_index, "right hand")
+
     def init_renderers(self):
         # Initialize camera renderers
         self.renderers = {}
@@ -288,16 +309,16 @@ class DefaultEnv:
         obs["body_q"] = self.mj_data.qpos[self.body_joint_index + 7 - 1]
         obs["body_dq"] = self.mj_data.qvel[self.body_joint_index + 6 - 1]
         obs["body_ddq"] = self.mj_data.qacc[self.body_joint_index + 6 - 1]
-        obs["body_tau_est"] = self.mj_data.actuator_force[self.body_joint_index - 1]
+        obs["body_tau_est"] = self.mj_data.actuator_force[self.body_actuator_index]
         if self.num_hand_dof > 0:
             obs["left_hand_q"] = self.mj_data.qpos[self.left_hand_index + 7 - 1]
             obs["left_hand_dq"] = self.mj_data.qvel[self.left_hand_index + 6 - 1]
             obs["left_hand_ddq"] = self.mj_data.qacc[self.left_hand_index + 6 - 1]
-            obs["left_hand_tau_est"] = self.mj_data.actuator_force[self.left_hand_index - 1]
+            obs["left_hand_tau_est"] = self.mj_data.actuator_force[self.left_hand_actuator_index]
             obs["right_hand_q"] = self.mj_data.qpos[self.right_hand_index + 7 - 1]
             obs["right_hand_dq"] = self.mj_data.qvel[self.right_hand_index + 6 - 1]
             obs["right_hand_ddq"] = self.mj_data.qacc[self.right_hand_index + 6 - 1]
-            obs["right_hand_tau_est"] = self.mj_data.actuator_force[self.right_hand_index - 1]
+            obs["right_hand_tau_est"] = self.mj_data.actuator_force[self.right_hand_actuator_index]
         obs["time"] = self.mj_data.time
         return obs
 
@@ -337,10 +358,10 @@ class DefaultEnv:
                 self.mj_data.xfrc_applied[self.band_attached_link] = np.zeros(6)
         body_torques = self.compute_body_torques()
         hand_torques = self.compute_hand_torques()
-        self.torques[self.body_joint_index - 1] = body_torques
+        self.torques[self.body_actuator_index] = body_torques
         if self.num_hand_dof > 0:
-            self.torques[self.left_hand_index - 1] = hand_torques[: self.num_hand_dof]
-            self.torques[self.right_hand_index - 1] = hand_torques[self.num_hand_dof :]
+            self.torques[self.left_hand_actuator_index] = hand_torques[: self.num_hand_dof]
+            self.torques[self.right_hand_actuator_index] = hand_torques[self.num_hand_dof :]
 
         self.torques = np.clip(self.torques, -self.torque_limit, self.torque_limit)
 
