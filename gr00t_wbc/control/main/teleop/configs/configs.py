@@ -62,9 +62,14 @@ def override_wbc_config(
             wbc_config[key] = key_to_value[key]
 
     # Inspire uses 6 commanded joints per hand.
-    # Keep NUM_HAND_JOINTS as-is for existing scene compatibility.
     if config.hand_type == "inspire":
         wbc_config["NUM_HAND_MOTORS"] = 6
+        wbc_config["NUM_HAND_JOINTS"] = 6
+        # Keep torque limit vector aligned with 29 body + 6 left hand + 6 right hand.
+        effort = list(wbc_config.get("motor_effort_limit_list", []))
+        body_effort = effort[: wbc_config["NUM_JOINTS"]]
+        inspire_hand_effort = [1.3, 0.5, 1.7, 1.7, 1.7, 1.7]
+        wbc_config["motor_effort_limit_list"] = body_effort + inspire_hand_effort + inspire_hand_effort
         robot_scene = wbc_config.get("ROBOT_SCENE", "")
         if isinstance(robot_scene, str) and "scene_43dof.xml" in robot_scene:
             wbc_config["ROBOT_SCENE"] = robot_scene.replace("scene_43dof.xml", "scene_41dof.xml")

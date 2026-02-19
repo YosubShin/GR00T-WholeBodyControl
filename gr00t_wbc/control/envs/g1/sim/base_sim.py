@@ -144,6 +144,22 @@ class DefaultEnv:
         self.body_joint_index = []
         self.left_hand_index = []
         self.right_hand_index = []
+        inspire_left_hand_joint_names = {
+            "left_hand_thumb_proximal_yaw_joint",
+            "left_hand_thumb_proximal_pitch_joint",
+            "left_hand_index_proximal_joint",
+            "left_hand_middle_proximal_joint",
+            "left_hand_ring_proximal_joint",
+            "left_hand_pinky_proximal_joint",
+        }
+        inspire_right_hand_joint_names = {
+            "right_hand_thumb_proximal_yaw_joint",
+            "right_hand_thumb_proximal_pitch_joint",
+            "right_hand_index_proximal_joint",
+            "right_hand_middle_proximal_joint",
+            "right_hand_ring_proximal_joint",
+            "right_hand_pinky_proximal_joint",
+        }
         for i in range(self.mj_model.njnt):
             name = self.mj_model.joint(i).name
             if any(
@@ -154,9 +170,17 @@ class DefaultEnv:
             ):
                 self.body_joint_index.append(i)
             elif "left_hand" in name:
-                self.left_hand_index.append(i)
+                if self.config.get("hand_type", "dex3") == "inspire":
+                    if name in inspire_left_hand_joint_names:
+                        self.left_hand_index.append(i)
+                else:
+                    self.left_hand_index.append(i)
             elif "right_hand" in name:
-                self.right_hand_index.append(i)
+                if self.config.get("hand_type", "dex3") == "inspire":
+                    if name in inspire_right_hand_joint_names:
+                        self.right_hand_index.append(i)
+                else:
+                    self.right_hand_index.append(i)
 
         assert len(self.body_joint_index) == self.config["NUM_JOINTS"]
         assert len(self.left_hand_index) == self.config["NUM_HAND_JOINTS"]
@@ -504,11 +528,18 @@ class CubeEnv(DefaultEnv):
 
     def update_reward(self):
         """Calculate reward based on gripper contact with cube and cube height"""
-        right_hand_body = [
-            "right_hand_thumb_2_link",
-            "right_hand_middle_1_link",
-            "right_hand_index_1_link",
-        ]
+        if self.config.get("hand_type", "dex3") == "inspire":
+            right_hand_body = [
+                "right_hand_thumb_distal",
+                "right_hand_middle_intermediate",
+                "right_hand_index_intermediate",
+            ]
+        else:
+            right_hand_body = [
+                "right_hand_thumb_2_link",
+                "right_hand_middle_1_link",
+                "right_hand_index_1_link",
+            ]
         gripper_cube_contact = check_contact(
             self.mj_model, self.mj_data, right_hand_body, "cube_body"
         )
@@ -535,16 +566,28 @@ class BoxEnv(DefaultEnv):
 
     def reward(self):
         """Calculate reward based on gripper contact with cube and cube height"""
-        left_hand_body = [
-            "left_hand_thumb_2_link",
-            "left_hand_middle_1_link",
-            "left_hand_index_1_link",
-        ]
-        right_hand_body = [
-            "right_hand_thumb_2_link",
-            "right_hand_middle_1_link",
-            "right_hand_index_1_link",
-        ]
+        if self.config.get("hand_type", "dex3") == "inspire":
+            left_hand_body = [
+                "left_hand_thumb_distal",
+                "left_hand_middle_intermediate",
+                "left_hand_index_intermediate",
+            ]
+            right_hand_body = [
+                "right_hand_thumb_distal",
+                "right_hand_middle_intermediate",
+                "right_hand_index_intermediate",
+            ]
+        else:
+            left_hand_body = [
+                "left_hand_thumb_2_link",
+                "left_hand_middle_1_link",
+                "left_hand_index_1_link",
+            ]
+            right_hand_body = [
+                "right_hand_thumb_2_link",
+                "right_hand_middle_1_link",
+                "right_hand_index_1_link",
+            ]
         gripper_box_contact = check_contact(self.mj_model, self.mj_data, left_hand_body, "box_body")
         gripper_box_contact &= check_contact(
             self.mj_model, self.mj_data, right_hand_body, "box_body"

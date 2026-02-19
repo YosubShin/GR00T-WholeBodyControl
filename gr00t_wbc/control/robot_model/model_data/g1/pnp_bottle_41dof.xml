@@ -1,6 +1,6 @@
 <mujoco model="g1_41dof_pnp_bottle scene">
-    <include file="g1_29dof_with_hand_rev_1_0_activatedfinger.xml" />
-    <!-- Note that the hand model in g1_29dof_with_hand.xml is not stable for simulation. -->
+    <include file="g1_29dof_with_inspire_hand.xml" />
+    <!-- Inspire-hand embodiment -->
   
     <statistic center="0 0 0.5" extent="2.0" />
   

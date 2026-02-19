@@ -57,11 +57,15 @@ class UnitreeSdk2Bridge:
         self.num_hand_motor = config.get("NUM_HAND_MOTORS", 0)
         self.hand_type = config.get("hand_type", "dex3")
         # Maps logical hand command index -> scene hand joint index.
-        # G1 hand joint order in current scene is [thumb0, thumb1, thumb2, middle0, middle1, index0, index1].
+        # Legacy 7-joint hand scene order is [thumb0, thumb1, thumb2, middle0, middle1, index0, index1].
         # Inspire logical order is [thumb_yaw, thumb_pitch, index, middle, ring, pinky].
-        # Until a dedicated Inspire MJCF is used in sim, ring/pinky are approximated on remaining distal joints.
         if self.hand_type == "inspire" and self.num_hand_motor == 6:
-            self.hand_joint_index_map = [0, 1, 5, 3, 6, 4]
+            if config.get("NUM_HAND_JOINTS", 0) == 6:
+                # Dedicated Inspire scene: direct mapping to actuated proximal joints.
+                self.hand_joint_index_map = list(range(6))
+            else:
+                # Backward-compatible mapping to legacy 7-joint hand scene.
+                self.hand_joint_index_map = [0, 1, 5, 3, 6, 4]
         else:
             self.hand_joint_index_map = list(range(self.num_hand_motor))
         self.use_sensor = config["USE_SENSOR"]
