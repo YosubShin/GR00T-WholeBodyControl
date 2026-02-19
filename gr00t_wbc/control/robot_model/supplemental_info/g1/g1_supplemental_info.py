@@ -124,38 +124,37 @@ class G1SupplementalInfo(RobotSupplementalInfo):
             ]
         else:
             # Inspire hardware exposes 6 commanded joints per hand.
-            # We keep the current G1 hand chain and map to a 6-DoF actuated subset.
             left_hand_actuated_joints = [
-                "left_hand_thumb_0_joint",
-                "left_hand_thumb_1_joint",
-                "left_hand_index_0_joint",
-                "left_hand_index_1_joint",
-                "left_hand_middle_0_joint",
-                "left_hand_middle_1_joint",
+                "left_hand_thumb_proximal_yaw_joint",
+                "left_hand_thumb_proximal_pitch_joint",
+                "left_hand_index_proximal_joint",
+                "left_hand_middle_proximal_joint",
+                "left_hand_ring_proximal_joint",
+                "left_hand_pinky_proximal_joint",
             ]
             right_hand_actuated_joints = [
-                "right_hand_thumb_0_joint",
-                "right_hand_thumb_1_joint",
-                "right_hand_index_0_joint",
-                "right_hand_index_1_joint",
-                "right_hand_middle_0_joint",
-                "right_hand_middle_1_joint",
+                "right_hand_thumb_proximal_yaw_joint",
+                "right_hand_thumb_proximal_pitch_joint",
+                "right_hand_index_proximal_joint",
+                "right_hand_middle_proximal_joint",
+                "right_hand_ring_proximal_joint",
+                "right_hand_pinky_proximal_joint",
             ]
             left_hand_group_joints = [
-                "left_hand_index_0_joint",
-                "left_hand_index_1_joint",
-                "left_hand_middle_0_joint",
-                "left_hand_middle_1_joint",
-                "left_hand_thumb_0_joint",
-                "left_hand_thumb_1_joint",
+                "left_hand_thumb_proximal_yaw_joint",
+                "left_hand_thumb_proximal_pitch_joint",
+                "left_hand_index_proximal_joint",
+                "left_hand_middle_proximal_joint",
+                "left_hand_ring_proximal_joint",
+                "left_hand_pinky_proximal_joint",
             ]
             right_hand_group_joints = [
-                "right_hand_index_0_joint",
-                "right_hand_index_1_joint",
-                "right_hand_middle_0_joint",
-                "right_hand_middle_1_joint",
-                "right_hand_thumb_0_joint",
-                "right_hand_thumb_1_joint",
+                "right_hand_thumb_proximal_yaw_joint",
+                "right_hand_thumb_proximal_pitch_joint",
+                "right_hand_index_proximal_joint",
+                "right_hand_middle_proximal_joint",
+                "right_hand_ring_proximal_joint",
+                "right_hand_pinky_proximal_joint",
             ]
 
         # Define joint limits from URDF
@@ -210,6 +209,20 @@ class G1SupplementalInfo(RobotSupplementalInfo):
             "right_hand_index_1_joint": [-1.74532925, 0],
             "right_hand_middle_0_joint": [-1.57079632, 0],
             "right_hand_middle_1_joint": [-1.74532925, 0],
+            # Left inspire hand (actuated)
+            "left_hand_thumb_proximal_yaw_joint": [-0.1, 1.3],
+            "left_hand_thumb_proximal_pitch_joint": [0.0, 0.5],
+            "left_hand_index_proximal_joint": [0.0, 1.7],
+            "left_hand_middle_proximal_joint": [0.0, 1.7],
+            "left_hand_ring_proximal_joint": [0.0, 1.7],
+            "left_hand_pinky_proximal_joint": [0.0, 1.7],
+            # Right inspire hand (actuated)
+            "right_hand_thumb_proximal_yaw_joint": [-0.1, 1.3],
+            "right_hand_thumb_proximal_pitch_joint": [0.0, 0.5],
+            "right_hand_index_proximal_joint": [0.0, 1.7],
+            "right_hand_middle_proximal_joint": [0.0, 1.7],
+            "right_hand_ring_proximal_joint": [0.0, 1.7],
+            "right_hand_pinky_proximal_joint": [0.0, 1.7],
         }
 
         # Define joint groups

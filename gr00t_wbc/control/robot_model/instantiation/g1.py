@@ -30,11 +30,14 @@ def instantiate_g1_robot_model(
         RobotModel: Configured G1 robot model
     """
     project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+    urdf_rel_path = (
+        "gr00t_wbc/control/robot_model/model_data/g1/g1_29dof_with_inspire_hand.urdf"
+        if hand_type == "inspire"
+        else "gr00t_wbc/control/robot_model/model_data/g1/g1_29dof_with_hand.urdf"
+    )
     robot_model_config = {
         "asset_path": os.path.join(project_root, "gr00t_wbc/control/robot_model/model_data/g1"),
-        "urdf_path": os.path.join(
-            project_root, "gr00t_wbc/control/robot_model/model_data/g1/g1_29dof_with_hand.urdf"
-        ),
+        "urdf_path": os.path.join(project_root, urdf_rel_path),
     }
     assert waist_location in [
         "lower_body",
