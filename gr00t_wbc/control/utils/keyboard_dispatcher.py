@@ -13,6 +13,17 @@ from gr00t_wbc.control.main.constants import KEYBOARD_INPUT_TOPIC
 _original_terminal_attrs = None
 
 
+def _get_or_create_ros_node(node_name: str):
+    """Return an existing ROS node from the global executor, or create one."""
+    if not rclpy.ok():
+        rclpy.init()
+    executor = rclpy.get_global_executor()
+    nodes = executor.get_nodes()
+    if nodes:
+        return nodes[0]
+    return rclpy.create_node(node_name)
+
+
 def save_terminal_state():
     """Save the current terminal state."""
     global _original_terminal_attrs
@@ -52,9 +63,7 @@ class ROSKeyboardDispatcher:
     def __init__(self):
         self.listeners = []
         self._active = False
-        assert rclpy.ok(), "Expected ROS2 to be initialized in this process..."
-        executor = rclpy.get_global_executor()
-        self.node = executor.get_nodes()[0]
+        self.node = _get_or_create_ros_node("ros_keyboard_dispatcher")
         print("creating keyboard input subscriber...")
         self.subscription = self.node.create_subscription(
             RosStringMsg, KEYBOARD_INPUT_TOPIC, self._callback, 10
@@ -179,9 +188,7 @@ class KeyboardListenerPublisher:
             remote_system: RemoteSystem instance
             control_channel_name: Name of the control channel
         """
-        assert rclpy.ok(), "Expected ROS2 to be initialized in this process..."
-        executor = rclpy.get_global_executor()
-        self.node = executor.get_nodes()[0]
+        self.node = _get_or_create_ros_node("keyboard_listener_publisher")
         self.publisher = self.node.create_publisher(RosStringMsg, topic_name, 1)
 
     def handle_keyboard_button(self, key):
@@ -194,16 +201,7 @@ class KeyboardListenerSubscriber:
         topic_name: str = KEYBOARD_LISTENER_TOPIC_NAME,
         node_name: str = "keyboard_listener_subscriber",
     ):
-        assert rclpy.ok(), "Expected ROS2 to be initialized in this process..."
-        executor = rclpy.get_global_executor()
-        nodes = executor.get_nodes()
-        if nodes:
-            self.node = nodes[0]
-            self._create_node = False
-        else:
-            self.node = rclpy.create_node("KeyboardListenerSubscriber")
-            executor.add_node(self.node)
-            self._create_node = True
+        self.node = _get_or_create_ros_node(node_name)
         self.subscriber = self.node.create_subscription(RosStringMsg, topic_name, self._callback, 1)
         self._data = None
 

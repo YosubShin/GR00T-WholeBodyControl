@@ -69,10 +69,14 @@ class G1Env(HumanoidEnv):
         self.use_sim = self.config.get("ENV_TYPE") == "sim"
 
         if self.use_sim:
-            if self.with_hands and self.hand_type == "inspire":
+            if (
+                self.with_hands
+                and self.hand_type == "inspire"
+                and int(self.config.get("NUM_HAND_JOINTS", 0)) != 6
+            ):
                 print(
-                    "[WARN] hand_type='inspire' in sim uses a 6-command mapping on the existing "
-                    "G1 hand scene. Unused hand joints remain at defaults."
+                    "[WARN] hand_type='inspire' in sim is using legacy 7-joint hand scene mapping. "
+                    "Consider using NUM_HAND_JOINTS=6 with scene_41dof for dedicated Inspire embodiment."
                 )
             # Create simulator using factory
 
