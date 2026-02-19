@@ -65,6 +65,9 @@ def override_wbc_config(
     # Keep NUM_HAND_JOINTS as-is for existing scene compatibility.
     if config.hand_type == "inspire":
         wbc_config["NUM_HAND_MOTORS"] = 6
+        robot_scene = wbc_config.get("ROBOT_SCENE", "")
+        if isinstance(robot_scene, str) and "scene_43dof.xml" in robot_scene:
+            wbc_config["ROBOT_SCENE"] = robot_scene.replace("scene_43dof.xml", "scene_41dof.xml")
 
     # g1 kp, kd, sim2real gap
     if config.env_type == "real":

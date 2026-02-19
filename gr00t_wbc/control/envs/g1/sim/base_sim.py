@@ -20,6 +20,12 @@ from gr00t_wbc.control.envs.g1.sim.unitree_sdk2py_bridge import ElasticBand, Uni
 GR00T_WBC_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
 
 
+def _get_task_scene_path(config: Dict[str, any], task_prefix: str) -> str:
+    hand_type = config.get("hand_type", "dex3")
+    suffix = "41dof" if hand_type == "inspire" else "43dof"
+    return f"gr00t_wbc/control/robot_model/model_data/g1/{task_prefix}_{suffix}.xml"
+
+
 class DefaultEnv:
     """Base environment class that handles simulation environment setup and step"""
 
@@ -493,7 +499,7 @@ class CubeEnv(DefaultEnv):
     ):
         # Override the robot scene
         config = config.copy()  # Create a copy to avoid modifying the original
-        config["ROBOT_SCENE"] = "gr00t_wbc/control/robot_model/model_data/g1/pnp_cube_43dof.xml"
+        config["ROBOT_SCENE"] = _get_task_scene_path(config, "pnp_cube")
         super().__init__(config, "cube", {}, onscreen, offscreen, enable_image_publish)
 
     def update_reward(self):
@@ -524,7 +530,7 @@ class BoxEnv(DefaultEnv):
     ):
         # Override the robot scene
         config = config.copy()  # Create a copy to avoid modifying the original
-        config["ROBOT_SCENE"] = "gr00t_wbc/control/robot_model/model_data/g1/lift_box_43dof.xml"
+        config["ROBOT_SCENE"] = _get_task_scene_path(config, "lift_box")
         super().__init__(config, "box", {}, onscreen, offscreen, enable_image_publish)
 
     def reward(self):
@@ -564,7 +570,7 @@ class BottleEnv(DefaultEnv):
     ):
         # Override the robot scene
         config = config.copy()  # Create a copy to avoid modifying the original
-        config["ROBOT_SCENE"] = "gr00t_wbc/control/robot_model/model_data/g1/pnp_bottle_43dof.xml"
+        config["ROBOT_SCENE"] = _get_task_scene_path(config, "pnp_bottle")
         camera_configs = {
             "egoview": {
                 "height": 400,

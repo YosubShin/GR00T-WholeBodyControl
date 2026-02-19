@@ -209,3 +209,4 @@ Notes:
 - Inspire hand DDS topics are supported in the hand wrappers.
 - Inspire control/teleop now uses a 6-DoF hand mapping path (`hand_type=inspire`).
 - MuJoCo simulation supports Inspire command/state topics with a 6-command mapping on the existing G1 hand scene. Full dedicated `41-DoF` Inspire scene assets are still pending.
+- MuJoCo task scenes now route to `*_41dof.xml` variants when `--hand_type inspire`.
