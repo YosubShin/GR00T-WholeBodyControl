@@ -56,6 +56,13 @@ class UnitreeSdk2Bridge:
         self.num_body_motor = config["NUM_MOTORS"]
         self.num_hand_motor = config.get("NUM_HAND_MOTORS", 0)
         self.hand_type = config.get("hand_type", "dex3")
+        # Maps logical hand command index -> scene hand joint index.
+        # G1 hand joint order in current scene is [thumb0, thumb1, thumb2, middle0, middle1, index0, index1].
+        # For Inspire (6 DoF), we use [thumb0, thumb1, index0, index1, middle0, middle1].
+        if self.hand_type == "inspire" and self.num_hand_motor == 6:
+            self.hand_joint_index_map = [0, 1, 5, 6, 3, 4]
+        else:
+            self.hand_joint_index_map = list(range(self.num_hand_motor))
         self.use_sensor = config["USE_SENSOR"]
 
         self.have_imu_ = False
@@ -267,10 +274,11 @@ class UnitreeSdk2Bridge:
             for i in range(self.num_hand_motor):
                 left_idx = self._inspire_left_start + i
                 right_idx = self._inspire_right_start + i
-                motor_states[left_idx].q = float(obs["left_hand_q"][i])
-                motor_states[left_idx].dq = float(obs["left_hand_dq"][i])
-                motor_states[right_idx].q = float(obs["right_hand_q"][i])
-                motor_states[right_idx].dq = float(obs["right_hand_dq"][i])
+                scene_idx = self.get_scene_hand_joint_index(i)
+                motor_states[left_idx].q = float(obs["left_hand_q"][scene_idx])
+                motor_states[left_idx].dq = float(obs["left_hand_dq"][scene_idx])
+                motor_states[right_idx].q = float(obs["right_hand_q"][scene_idx])
+                motor_states[right_idx].dq = float(obs["right_hand_dq"][scene_idx])
             self.inspire_state_puber.Write(self.inspire_state)
             return
 
@@ -333,6 +341,9 @@ class UnitreeSdk2Bridge:
                 return motor_cmd[self._inspire_left_start + motor_idx]
             return motor_cmd[self._inspire_right_start + motor_idx]
         raise ValueError(f"Unsupported hand_type: {self.hand_type}")
+
+    def get_scene_hand_joint_index(self, motor_idx: int) -> int:
+        return self.hand_joint_index_map[motor_idx]
 
     @staticmethod
     def _get_motor_cmd(cmd_msg):
