@@ -266,18 +266,28 @@ class DefaultEnv:
                 right_q_target = self.unitree_bridge.get_hand_target_q("right", i)
                 left_dq_target = self.unitree_bridge.get_hand_target_dq("left", i)
                 right_dq_target = self.unitree_bridge.get_hand_target_dq("right", i)
+                if self.config.get("hand_type", "dex3") == "inspire":
+                    left_kp = min(float(left_cmd.kp), 80.0)
+                    left_kd = min(float(left_cmd.kd), 5.0)
+                    right_kp = min(float(right_cmd.kp), 80.0)
+                    right_kd = min(float(right_cmd.kd), 5.0)
+                else:
+                    left_kp = float(left_cmd.kp)
+                    left_kd = float(left_cmd.kd)
+                    right_kp = float(right_cmd.kp)
+                    right_kd = float(right_cmd.kd)
                 left_hand_torques[i] = (
                     left_cmd.tau
-                    + left_cmd.kp
+                    + left_kp
                     * (left_q_target - self.mj_data.qpos[self.left_hand_index[scene_i] + 7 - 1])
-                    + left_cmd.kd
+                    + left_kd
                     * (left_dq_target - self.mj_data.qvel[self.left_hand_index[scene_i] + 6 - 1])
                 )
                 right_hand_torques[i] = (
                     right_cmd.tau
-                    + right_cmd.kp
+                    + right_kp
                     * (right_q_target - self.mj_data.qpos[self.right_hand_index[scene_i] + 7 - 1])
-                    + right_cmd.kd
+                    + right_kd
                     * (right_dq_target - self.mj_data.qvel[self.right_hand_index[scene_i] + 6 - 1])
                 )
         return np.concatenate((left_hand_torques, right_hand_torques))

@@ -137,6 +137,15 @@ class UnitreeSdk2Bridge:
                 self.inspire_state_puber.Init()
 
                 self.inspire_cmd = self._build_inspire_cmd_msg(self._inspire_total_dof)
+                # Initialize inspire command with an open-hand hold target for simulation stability.
+                motor_cmd = self._get_motor_cmd(self.inspire_cmd)
+                for i in range(self._inspire_total_dof):
+                    motor_cmd[i].mode = 1
+                    motor_cmd[i].q = 0.0
+                    motor_cmd[i].dq = 0.0
+                    motor_cmd[i].tau = 0.0
+                    motor_cmd[i].kp = 80.0
+                    motor_cmd[i].kd = 5.0
                 self.inspire_cmd_suber = ChannelSubscriber("rt/inspire/cmd", MotorCmds_)
                 self.inspire_cmd_suber.Init(self.InspireCmdHandler, 1)
             else:
