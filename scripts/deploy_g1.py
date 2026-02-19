@@ -159,6 +159,8 @@ class G1Deployment:
             self.config.env_name,
             "--camera_port",
             str(self.config.camera_port),
+            "--hand_type",
+            self.config.hand_type,
         ]
 
         # Handle boolean flags
@@ -209,6 +211,8 @@ class G1Deployment:
             "None" if self.config.sim_in_single_process else self.config.simulator,
             "--control_frequency",
             str(self.config.control_frequency),
+            "--hand_type",
+            self.config.hand_type,
         ]
 
         # Handle boolean flag using presence/absence pattern

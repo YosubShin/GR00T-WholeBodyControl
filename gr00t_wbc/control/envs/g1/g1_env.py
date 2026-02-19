@@ -69,6 +69,12 @@ class G1Env(HumanoidEnv):
         self.use_sim = self.config.get("ENV_TYPE") == "sim"
 
         if self.use_sim:
+            if self.with_hands and self.hand_type == "inspire":
+                raise NotImplementedError(
+                    "Simulation with hand_type='inspire' is not wired yet in this repository. "
+                    "Current MuJoCo scenes/robot-model mappings are Dex3-oriented (43-DoF). "
+                    "Use --interface real for Inspire hardware, or use Dex3 in simulation."
+                )
             # Create simulator using factory
 
             kwargs.update(

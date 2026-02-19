@@ -202,6 +202,9 @@ Key flags:
 | Hand Type | DOF (per hand) | Total Joints | Flag |
 |-----------|---------------|--------------|------|
 | Rubber Stubs | 0 | 29 (body only) | `--no-with-hands` |
-| Unitree Dex3 | 7 | 43 | `--with-hands` (default) |
-| Inspire RH56 | 6 | 41 | *Requires custom integration* |
+| Unitree Dex3 | 7 | 43 | `--with-hands --hand_type dex3` (default) |
+| Inspire RH56 | 6 | 41 | `--with-hands --hand_type inspire` |
 
+Notes:
+- Inspire hand DDS topics are supported in the hand wrappers.
+- MuJoCo simulation for `g1 + inspire` is not fully wired yet in this repo (scene + full robot model mapping), so use Inspire with `--interface real` for now.
