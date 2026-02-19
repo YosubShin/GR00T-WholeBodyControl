@@ -37,7 +37,7 @@ def main(config: ArgsConfig):
             config.enable_offscreen
         ), "enable_offscreen must be True when enable_image_publish is True"
 
-    robot_model = instantiate_g1_robot_model()
+    robot_model = instantiate_g1_robot_model(hand_type=config.hand_type)
 
     sim_wrapper = SimWrapper(
         robot_model=robot_model,

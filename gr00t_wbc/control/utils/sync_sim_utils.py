@@ -486,7 +486,9 @@ def get_data_exporter(
 
 
 def get_env(config: SyncSimDataCollectionConfig, **kwargs) -> SyncEnv:
-    robot_type, _ = get_robot_type_and_model(config.robot, enable_waist_ik=config.enable_waist)
+    robot_type, _ = get_robot_type_and_model(
+        config.robot, enable_waist_ik=config.enable_waist, hand_type=config.hand_type
+    )
     print("Instantiating environment:", config.env_name, config.robot)
     controller_configs = update_robosuite_controller_configs(
         robot=config.robot,
@@ -501,6 +503,7 @@ def get_env(config: SyncSimDataCollectionConfig, **kwargs) -> SyncEnv:
             "renderer": config.renderer,
             "controller_configs": controller_configs,
             "enable_waist": config.enable_waist,
+            "hand_type": config.hand_type,
             "enable_gravity_compensation": config.enable_gravity_compensation,
             "gravity_compensation_joints": config.gravity_compensation_joints,
         }
@@ -518,8 +521,12 @@ def get_env(config: SyncSimDataCollectionConfig, **kwargs) -> SyncEnv:
     return env
 
 
-def get_env_name(robot: str, task_name: str, enable_waist_ik: bool = False) -> str:
-    robot_type, _ = get_robot_type_and_model(robot, enable_waist_ik=enable_waist_ik)
+def get_env_name(
+    robot: str, task_name: str, enable_waist_ik: bool = False, hand_type: str = "dex3"
+) -> str:
+    robot_type, _ = get_robot_type_and_model(
+        robot, enable_waist_ik=enable_waist_ik, hand_type=hand_type
+    )
     env_name = f"gr00tlocomanip_{robot_type}_sim/{task_name}_{robot}_Env"
     return env_name
 
@@ -541,7 +548,7 @@ def get_teleop_policy(
     activate_keyboard_listener: bool = True,
 ) -> TeleopPolicy:
     if robot_type == "g1":
-        left_hand_ik_solver, right_hand_ik_solver = instantiate_g1_hand_ik_solver()
+        left_hand_ik_solver, right_hand_ik_solver = instantiate_g1_hand_ik_solver(config.hand_type)
     else:
         raise ValueError(f"Invalid robot type: {robot_type}")
 

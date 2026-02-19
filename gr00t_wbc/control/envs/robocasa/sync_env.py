@@ -35,7 +35,9 @@ class SyncEnv(gym.Env):
         self.enable_gravity_compensation = kwargs.pop("enable_gravity_compensation", False)
         self.gravity_compensation_joints = kwargs.pop("gravity_compensation_joints", ["arms"])
         _, self.robot_model = get_robot_type_and_model(
-            robot_name, enable_waist_ik=kwargs.pop("enable_waist", False)
+            robot_name,
+            enable_waist_ik=kwargs.pop("enable_waist", False),
+            hand_type=kwargs.pop("hand_type", "dex3"),
         )
 
         env_kwargs = {

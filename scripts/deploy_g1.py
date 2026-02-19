@@ -274,6 +274,8 @@ class G1Deployment:
             self.config.body_streamer_ip,
             "--body_streamer_keyword",
             self.config.body_streamer_keyword,
+            "--hand_type",
+            self.config.hand_type,
         ]
 
         # Handle boolean flags using tyro syntax
@@ -326,6 +328,8 @@ class G1Deployment:
             self.config.camera_host,
             "--camera_port",
             str(self.config.camera_port),
+            "--hand_type",
+            self.config.hand_type,
         ]
 
         if not self._run_in_tmux("data", cmd, pane_index=1):

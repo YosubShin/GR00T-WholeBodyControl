@@ -399,6 +399,7 @@ def main(config: SyncSimPlaybackConfig):
             "control_frequency",
             "enable_waist",
             "with_hands",
+            "hand_type",
             "env_name",
             "robot",
             "task_name",
@@ -410,7 +411,9 @@ def main(config: SyncSimPlaybackConfig):
     )
     config.validate_args()
 
-    robot_type, robot_model = get_robot_type_and_model(config.robot, config.enable_waist)
+    robot_type, robot_model = get_robot_type_and_model(
+        config.robot, config.enable_waist, hand_type=config.hand_type
+    )
 
     # Setup rendering
     if config.save_video or config.save_img_obs:

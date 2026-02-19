@@ -1,7 +1,9 @@
 from .g1 import instantiate_g1_robot_model
 
 
-def get_robot_type_and_model(robot: str, enable_waist_ik: bool = False):
+def get_robot_type_and_model(
+    robot: str, enable_waist_ik: bool = False, hand_type: str = "dex3"
+):
     """Get the robot type from the robot name."""
     if robot.lower().startswith("g1"):
         if "FixedLowerBody" in robot or "FloatingBody" in robot:
@@ -10,6 +12,8 @@ def get_robot_type_and_model(robot: str, enable_waist_ik: bool = False):
             waist_location = "lower_and_upper_body"
         else:
             waist_location = "lower_body"
-        return "g1", instantiate_g1_robot_model(waist_location=waist_location)
+        return "g1", instantiate_g1_robot_model(
+            waist_location=waist_location, hand_type=hand_type
+        )
     else:
         raise ValueError(f"Invalid robot name: {robot}")

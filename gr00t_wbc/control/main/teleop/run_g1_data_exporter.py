@@ -280,7 +280,9 @@ def main(config: DataExporterConfig):
 
     waist_location = "lower_and_upper_body" if config.enable_waist else "lower_body"
     g1_rm = g1.instantiate_g1_robot_model(
-        waist_location=waist_location, high_elbow_pose=config.high_elbow_pose
+        waist_location=waist_location,
+        high_elbow_pose=config.high_elbow_pose,
+        hand_type=config.hand_type,
     )
 
     dataset_features = get_dataset_features(g1_rm, config.add_stereo_camera)

@@ -62,6 +62,7 @@ def main(config: SyncSimDataCollectionConfig):
     robot_type, robot_model = get_robot_type_and_model(
         config.robot,
         enable_waist_ik=config.enable_waist,
+        hand_type=config.hand_type,
     )
 
     # Initialize sim env

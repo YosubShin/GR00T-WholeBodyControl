@@ -207,4 +207,5 @@ Key flags:
 
 Notes:
 - Inspire hand DDS topics are supported in the hand wrappers.
+- Inspire control/teleop now uses a 6-DoF hand mapping path (`hand_type=inspire`).
 - MuJoCo simulation for `g1 + inspire` is not fully wired yet in this repo (scene + full robot model mapping), so use Inspire with `--interface real` for now.

@@ -17,6 +17,7 @@ class RoboCasaG1EnvServer(RoboCasaEnvServer):
         _, robot_model = get_robot_type_and_model(
             "G1",
             enable_waist_ik=wbc_config["enable_waist"],
+            hand_type=wbc_config.get("hand_type", "dex3"),
         )
         if env_kwargs.get("camera_names", None) is None:
             env_kwargs["camera_names"] = [

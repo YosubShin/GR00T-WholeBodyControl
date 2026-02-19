@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Literal
 
 import numpy as np
 
@@ -37,8 +38,14 @@ class G1SupplementalInfo(RobotSupplementalInfo):
         self,
         waist_location: WaistLocation = WaistLocation.LOWER_BODY,
         elbow_pose: ElbowPose = ElbowPose.LOW,
+        hand_type: Literal["dex3", "three_finger", "inspire"] = "dex3",
     ):
-        name = "G1_G1ThreeFinger"
+        if hand_type not in ("dex3", "three_finger", "inspire"):
+            raise ValueError(
+                f"Unsupported hand_type '{hand_type}'. Expected one of "
+                "['dex3', 'three_finger', 'inspire']."
+            )
+        name = "G1_Inspire" if hand_type == "inspire" else "G1_G1ThreeFinger"
 
         # Define all actuated joints
         body_actuated_joints = [
@@ -78,27 +85,78 @@ class G1SupplementalInfo(RobotSupplementalInfo):
             "right_wrist_yaw_joint",
         ]
 
-        left_hand_actuated_joints = [
-            # Left hand
-            "left_hand_thumb_0_joint",
-            "left_hand_thumb_1_joint",
-            "left_hand_thumb_2_joint",
-            "left_hand_index_0_joint",
-            "left_hand_index_1_joint",
-            "left_hand_middle_0_joint",
-            "left_hand_middle_1_joint",
-        ]
-
-        right_hand_actuated_joints = [
-            # Right hand
-            "right_hand_thumb_0_joint",
-            "right_hand_thumb_1_joint",
-            "right_hand_thumb_2_joint",
-            "right_hand_index_0_joint",
-            "right_hand_index_1_joint",
-            "right_hand_middle_0_joint",
-            "right_hand_middle_1_joint",
-        ]
+        if hand_type in ("dex3", "three_finger"):
+            left_hand_actuated_joints = [
+                "left_hand_thumb_0_joint",
+                "left_hand_thumb_1_joint",
+                "left_hand_thumb_2_joint",
+                "left_hand_index_0_joint",
+                "left_hand_index_1_joint",
+                "left_hand_middle_0_joint",
+                "left_hand_middle_1_joint",
+            ]
+            right_hand_actuated_joints = [
+                "right_hand_thumb_0_joint",
+                "right_hand_thumb_1_joint",
+                "right_hand_thumb_2_joint",
+                "right_hand_index_0_joint",
+                "right_hand_index_1_joint",
+                "right_hand_middle_0_joint",
+                "right_hand_middle_1_joint",
+            ]
+            left_hand_group_joints = [
+                "left_hand_index_0_joint",
+                "left_hand_index_1_joint",
+                "left_hand_middle_0_joint",
+                "left_hand_middle_1_joint",
+                "left_hand_thumb_0_joint",
+                "left_hand_thumb_1_joint",
+                "left_hand_thumb_2_joint",
+            ]
+            right_hand_group_joints = [
+                "right_hand_index_0_joint",
+                "right_hand_index_1_joint",
+                "right_hand_middle_0_joint",
+                "right_hand_middle_1_joint",
+                "right_hand_thumb_0_joint",
+                "right_hand_thumb_1_joint",
+                "right_hand_thumb_2_joint",
+            ]
+        else:
+            # Inspire hardware exposes 6 commanded joints per hand.
+            # We keep the current G1 hand chain and map to a 6-DoF actuated subset.
+            left_hand_actuated_joints = [
+                "left_hand_thumb_0_joint",
+                "left_hand_thumb_1_joint",
+                "left_hand_index_0_joint",
+                "left_hand_index_1_joint",
+                "left_hand_middle_0_joint",
+                "left_hand_middle_1_joint",
+            ]
+            right_hand_actuated_joints = [
+                "right_hand_thumb_0_joint",
+                "right_hand_thumb_1_joint",
+                "right_hand_index_0_joint",
+                "right_hand_index_1_joint",
+                "right_hand_middle_0_joint",
+                "right_hand_middle_1_joint",
+            ]
+            left_hand_group_joints = [
+                "left_hand_index_0_joint",
+                "left_hand_index_1_joint",
+                "left_hand_middle_0_joint",
+                "left_hand_middle_1_joint",
+                "left_hand_thumb_0_joint",
+                "left_hand_thumb_1_joint",
+            ]
+            right_hand_group_joints = [
+                "right_hand_index_0_joint",
+                "right_hand_index_1_joint",
+                "right_hand_middle_0_joint",
+                "right_hand_middle_1_joint",
+                "right_hand_thumb_0_joint",
+                "right_hand_thumb_1_joint",
+            ]
 
         # Define joint limits from URDF
         joint_limits = {
@@ -213,27 +271,11 @@ class G1SupplementalInfo(RobotSupplementalInfo):
             "arms": {"joints": [], "groups": ["left_arm", "right_arm"]},
             # Hand groups
             "left_hand": {
-                "joints": [
-                    "left_hand_index_0_joint",
-                    "left_hand_index_1_joint",
-                    "left_hand_middle_0_joint",
-                    "left_hand_middle_1_joint",
-                    "left_hand_thumb_0_joint",
-                    "left_hand_thumb_1_joint",
-                    "left_hand_thumb_2_joint",
-                ],
+                "joints": left_hand_group_joints,
                 "groups": [],
             },
             "right_hand": {
-                "joints": [
-                    "right_hand_index_0_joint",
-                    "right_hand_index_1_joint",
-                    "right_hand_middle_0_joint",
-                    "right_hand_middle_1_joint",
-                    "right_hand_thumb_0_joint",
-                    "right_hand_thumb_1_joint",
-                    "right_hand_thumb_2_joint",
-                ],
+                "joints": right_hand_group_joints,
                 "groups": [],
             },
             "hands": {"joints": [], "groups": ["left_hand", "right_hand"]},

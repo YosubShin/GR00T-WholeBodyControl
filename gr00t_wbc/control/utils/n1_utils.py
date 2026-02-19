@@ -51,6 +51,7 @@ class WholeBodyControlWrapper(gym.Wrapper):
         robot_type, robot_model = get_robot_type_and_model(
             self.script_config["robot"],
             enable_waist_ik=self.script_config.get("enable_waist", False),
+            hand_type=self.script_config.get("hand_type", "dex3"),
         )
         config = SyncSimDataCollectionConfig.from_dict(self.script_config)
         config.update(

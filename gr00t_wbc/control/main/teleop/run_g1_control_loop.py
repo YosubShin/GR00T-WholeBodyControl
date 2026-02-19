@@ -54,7 +54,9 @@ def main(config: ControlLoopConfig):
 
     waist_location = "lower_and_upper_body" if config.enable_waist else "lower_body"
     robot_model = instantiate_g1_robot_model(
-        waist_location=waist_location, high_elbow_pose=config.high_elbow_pose
+        waist_location=waist_location,
+        high_elbow_pose=config.high_elbow_pose,
+        hand_type=config.hand_type,
     )
 
     env = G1Env(
